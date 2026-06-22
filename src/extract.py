@@ -77,5 +77,10 @@ df = df.drop_duplicates(subset='job_id')
 df['collected_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 print(f"Total unique jobs fetched: {len(df)}")
 
-df.to_csv('data/raw_jobs.csv', index=False)
-print("Saved to data/raw_jobs.csv")
+dir = "data/raw"
+os.makedirs(dir, exist_ok=True)
+
+output_file = os.path.join(dir, "raw_jobs.csv")
+
+df.to_csv(output_file, index=False)
+print(f"Saved to {output_file}")
