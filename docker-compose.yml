@@ -1,0 +1,14 @@
+services:
+  extract:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    command: python src/extract.py
+
+  transform:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    command: python src/transform.py

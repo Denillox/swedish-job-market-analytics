@@ -1,32 +1,14 @@
-import requests
-import json
 import os
-import pandas as pd
 from datetime import datetime
 
-def extract_job(hit):
-    return{
-        'job_id': hit['id'],
-        'job_title': hit['headline'],
-        'employer': hit['employer']['name'],
-        'publication_date': hit.get('publication_date'),
-        'application_deadline': hit.get('application_deadline'),
-        'municipality': hit.get('workplace_address', {}).get('municipality'),
-        'region': hit.get('workplace_address', {}).get('region'),
-        'category': hit.get('occupation', {}).get('label'),
-        'type': hit.get('employment_type', {}).get('label'),
-        'hours': hit.get('working_hours_type', {}).get('label'),
-        'experience': hit['experience_required'],
-        'number_of_vacancies': hit['number_of_vacancies'],
-        'description': hit.get('description', {}).get('text'),
-        'search_term': None
-    }
+import pandas as pd
+import requests
 
 
-all_jobs = []
+BASE_URL = "https://jobsearch.api.jobtechdev.se/search"
+OUTPUT_PATH = "data/raw/raw_jobs.csv"
 
-base_url = "https://jobsearch.api.jobtechdev.se/search"
-search_terms = [
+SEARCH_TERMS = [
     "data engineer",
     "data analyst",
     "ai engineer",
@@ -34,53 +16,89 @@ search_terms = [
     "machine learning",
 ]
 
-for term in search_terms:
+
+def extract_job(hit):
+    return {
+        "job_id": hit.get("id"),
+        "job_title": hit.get("headline"),
+        "employer": hit.get("employer", {}).get("name"),
+        "publication_date": hit.get("publication_date"),
+        "application_deadline": hit.get("application_deadline"),
+        "municipality": hit.get("workplace_address", {}).get("municipality"),
+        "region": hit.get("workplace_address", {}).get("region"),
+        "category": hit.get("occupation", {}).get("label"),
+        "type": hit.get("employment_type", {}).get("label"),
+        "hours": hit.get("working_hours_type", {}).get("label"),
+        "experience": hit.get("experience_required"),
+        "number_of_vacancies": hit.get("number_of_vacancies"),
+        "description": hit.get("description", {}).get("text"),
+        "search_term": None,
+    }
+
+
+def fetch_jobs_for_term(term):
+    jobs = []
     offset = 0
+    limit = 100
+
     while True:
-        '''
-        Parameters:
-        q -> search query (ex. data engineer)
-        limit -> nr of results
-        offset -> pagination (skip first n results)
-        municipality -> filter by city code
-        '''
         params = {
             "q": term,
-            "limit": 100,
-            "offset": offset
+            "limit": limit,
+            "offset": offset,
         }
-        res = requests.get(base_url, params=params)
 
-        if res.status_code != 200:
-            print(f"API error for '{term}': {res.status_code}")
+        response = requests.get(BASE_URL, params=params, timeout=30)
+
+        if response.status_code != 200:
+            print(f"API error for '{term}': {response.status_code}")
             break
 
-        data = res.json()
-        hits = data["hits"]
+        data = response.json()
+        hits = data.get("hits", [])
 
         if not hits:
             break
 
         for hit in hits:
             job = extract_job(hit)
-            job['search_term'] = term
-            all_jobs.append(job)
-        
-        offset += 100
-        print(f"Got {len(all_jobs)} jobs so far..")
+            job["search_term"] = term
+            jobs.append(job)
 
-        if offset >= data['total']['value']:
+        offset += limit
+        total = data.get("total", {}).get("value", 0)
+
+        print(f"Fetched {len(jobs)} jobs for '{term}'")
+
+        if offset >= total:
             break
 
-df = pd.DataFrame(all_jobs)
-df = df.drop_duplicates(subset='job_id')
-df['collected_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-print(f"Total unique jobs fetched: {len(df)}")
+    return jobs
 
-dir = "data/raw"
-os.makedirs(dir, exist_ok=True)
 
-output_file = os.path.join(dir, "raw_jobs.csv")
+def save_jobs(jobs, output_path):
+    df = pd.DataFrame(jobs)
+    df = df.drop_duplicates(subset="job_id")
+    df["collected_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-df.to_csv(output_file, index=False)
-print(f"Saved to {output_file}")
+    output_dir = os.path.dirname(output_path)
+    os.makedirs(output_dir, exist_ok=True)
+
+    df.to_csv(output_path, index=False)
+
+    print(f"Total unique jobs fetched: {len(df)}")
+    print(f"Saved to {output_path}")
+
+
+def main():
+    all_jobs = []
+
+    for term in SEARCH_TERMS:
+        term_jobs = fetch_jobs_for_term(term)
+        all_jobs.extend(term_jobs)
+
+    save_jobs(all_jobs, OUTPUT_PATH)
+
+
+if __name__ == "__main__":
+    main()
