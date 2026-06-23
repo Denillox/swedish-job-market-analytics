@@ -10,6 +10,9 @@ JOB_SKILLS_OUTPUT_PATH = "data/processed/job_skills.parquet"
 LOCATION_COUNTS_OUTPUT_PATH = "data/processed/location_counts.parquet"
 WORKPLACE_TYPE_COUNTS_OUTPUT_PATH = "data/processed/workplace_type_counts.parquet"
 EMPLOYER_COUNTS_OUTPUT_PATH = "data/processed/employer_counts.parquet"
+EXPERIENCE_COUNTS_OUTPUT_PATH = "data/processed/experience_counts.parquet"
+
+
 # Decrease duplicate-found words with patterns instead of single words in text search
 SKILL_PATTERNS = { 
     "python": [
@@ -149,6 +152,7 @@ def main():
         "region",
         "publication_date",
         "search_term",
+        col("experience").alias("experience_required"),
         "skills",
         "workplace_type"
     )
@@ -180,10 +184,17 @@ def main():
     )
 
     employer_counts_df = (
-    jobs_df
-    .groupBy("employer")
-    .count()
-    .orderBy(desc("count"))
+        jobs_df
+        .groupBy("employer")
+        .count()
+        .orderBy(desc("count"))
+    )
+
+    experience_counts_df = (
+        jobs_df
+        .groupBy("experience_required")
+        .count()
+        .orderBy(desc("count"))
     )
 
     print("Top job locations:")
@@ -201,12 +212,16 @@ def main():
     print("Employer counts:")
     employer_counts_df.show(truncate=False)
 
+    print("Experience requirement counts:")
+    experience_counts_df.show(truncate=False)
+
     jobs_df.write.mode("overwrite").parquet(JOBS_OUTPUT_PATH)
     skill_counts_df.write.mode("overwrite").parquet(SKILL_COUNTS_OUTPUT_PATH)
     job_skills_df.write.mode("overwrite").parquet(JOB_SKILLS_OUTPUT_PATH)
     location_counts_df.write.mode("overwrite").parquet(LOCATION_COUNTS_OUTPUT_PATH)
     workplace_type_counts_df.write.mode("overwrite").parquet(WORKPLACE_TYPE_COUNTS_OUTPUT_PATH)
     employer_counts_df.write.mode("overwrite").parquet(EMPLOYER_COUNTS_OUTPUT_PATH)
+    experience_counts_df.write.mode("overwrite").parquet(EXPERIENCE_COUNTS_OUTPUT_PATH)
 
     print("Saved processed datasets:")
     print("- data/processed/jobs.parquet")
@@ -215,6 +230,7 @@ def main():
     print("- data/processed/location_counts.parquet")
     print("- data/processed/workplace_type_counts.parquet")
     print("- data/processed/employer_counts.parquet")
+    print("- data/processed/experience_counts.parquet")
 
 if __name__ == "__main__":
     main()

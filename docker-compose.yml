@@ -12,3 +12,10 @@ services:
       - ./data:/app/data
       - ./src:/app/src
     command: python src/transform.py
+
+  quality:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    command: python src/quality_checks.py
