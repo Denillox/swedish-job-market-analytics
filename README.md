@@ -28,6 +28,7 @@ Implemented:
 * Extract explicit years of experience from job descriptions
 * Generate analytics-ready Parquet datasets
 * Run data quality checks on processed outputs
+* Upload raw and processed datasets to Azure Blob Storage
 
 ## Tech Stack
 
@@ -103,6 +104,12 @@ Run data quality checks:
 
 ```bash
 docker compose run --rm quality
+```
+
+Run the upload step:
+
+```bash
+docker compose run --rm upload
 ```
 
 Generated raw and processed data is written to the local `data/` directory.

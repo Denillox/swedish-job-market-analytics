@@ -19,3 +19,12 @@ services:
       - ./data:/app/data
       - ./src:/app/src
     command: python src/quality_checks.py
+
+  upload:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    command: python src/upload_to_blob.py
