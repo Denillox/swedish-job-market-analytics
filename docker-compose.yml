@@ -28,3 +28,19 @@ services:
       - ./data:/app/data
       - ./src:/app/src
     command: python src/upload_to_blob.py
+
+  
+  pipeline:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    command: >
+      sh -c "
+      python src/extract.py &&
+      python src/transform.py &&
+      python src/quality_checks.py &&
+      python src/upload_to_blob.py
+      "

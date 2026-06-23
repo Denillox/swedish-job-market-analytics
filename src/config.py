@@ -8,6 +8,13 @@ EMPLOYER_COUNTS_OUTPUT_PATH = "data/processed/employer_counts.parquet"
 EXPERIENCE_COUNTS_OUTPUT_PATH = "data/processed/experience_counts.parquet"
 YEARS_EXPERIENCE_OUTPUT_PATH = "data/processed/years_experience_counts.parquet"
 
+SKILL_COUNTS_EXPORT_PATH = "data/exports/skill_counts.csv"
+LOCATION_COUNTS_EXPORT_PATH = "data/exports/location_counts.csv"
+WORKPLACE_TYPE_COUNTS_EXPORT_PATH = "data/exports/workplace_type_counts.csv"
+EMPLOYER_COUNTS_EXPORT_PATH = "data/exports/employer_counts.csv"
+EXPERIENCE_COUNTS_EXPORT_PATH = "data/exports/experience_counts.csv"
+YEARS_EXPERIENCE_EXPORT_PATH = "data/exports/years_experience_counts.csv"
+
 # Decrease duplicate-found words with patterns instead of single words in text search
 SKILL_PATTERNS = { 
     "python": [

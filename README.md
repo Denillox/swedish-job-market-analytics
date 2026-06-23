@@ -86,6 +86,19 @@ The transformation step currently creates:
 | `experience_counts.parquet`       | Counts based on the API-level experience required flag |
 | `years_experience_counts.parquet` | Counts of explicitly mentioned years of experience     |
 
+
+## Dashboard Exports
+
+In addition to Parquet outputs, the transform step also creates CSV exports for easier Power BI consumption:
+
+- `data/exports/skill_counts.csv`
+- `data/exports/location_counts.csv`
+- `data/exports/workplace_type_counts.csv`
+- `data/exports/employer_counts.csv`
+- `data/exports/experience_counts.csv`
+- `data/exports/years_experience_counts.csv`
+
+
 ## How to Run
 
 Run the extraction step:

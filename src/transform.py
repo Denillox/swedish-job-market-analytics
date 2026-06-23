@@ -2,6 +2,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, udf, explode, desc
 from pyspark.sql.types import ArrayType, StringType, IntegerType
 import re
+from pathlib import Path
+import shutil
 
 from config import (
     RAW_DATA_PATH,
@@ -13,6 +15,12 @@ from config import (
     EMPLOYER_COUNTS_OUTPUT_PATH,
     EXPERIENCE_COUNTS_OUTPUT_PATH,
     YEARS_EXPERIENCE_OUTPUT_PATH,
+    SKILL_COUNTS_EXPORT_PATH,
+    LOCATION_COUNTS_EXPORT_PATH,
+    WORKPLACE_TYPE_COUNTS_EXPORT_PATH,
+    EMPLOYER_COUNTS_EXPORT_PATH,
+    EXPERIENCE_COUNTS_EXPORT_PATH,
+    YEARS_EXPERIENCE_EXPORT_PATH,
     SKILL_PATTERNS,
 )
 
@@ -109,6 +117,36 @@ def extract_years_experience(description):
             return years
 
     return None
+
+def write_single_csv(df, output_path):
+    output_path = Path(output_path)
+    temp_dir = output_path.parent / f"{output_path.stem}_tmp"
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if temp_dir.exists():
+        shutil.rmtree(temp_dir)
+
+    if output_path.exists():
+        output_path.unlink()
+
+    (
+        df.coalesce(1)
+        .write
+        .mode("overwrite")
+        .option("header", True)
+        .csv(str(temp_dir))
+    )
+
+    part_files = list(temp_dir.glob("part-*.csv"))
+
+    if not part_files:
+        raise FileNotFoundError(f"No CSV part file found in {temp_dir}")
+
+    shutil.move(str(part_files[0]), str(output_path))
+    shutil.rmtree(temp_dir)
+
+    print(f"Saved CSV export: {output_path}")
 
 def main():
 
@@ -217,15 +255,15 @@ def main():
     experience_counts_df.write.mode("overwrite").parquet(EXPERIENCE_COUNTS_OUTPUT_PATH)
     years_experience_counts_df.write.mode("overwrite").parquet(YEARS_EXPERIENCE_OUTPUT_PATH)
 
-    print("Saved processed datasets:")
-    print("- data/processed/jobs.parquet")
-    print("- data/processed/skill_counts.parquet")
-    print("- data/processed/job_skills.parquet")
-    print("- data/processed/location_counts.parquet")
-    print("- data/processed/workplace_type_counts.parquet")
-    print("- data/processed/employer_counts.parquet")
-    print("- data/processed/experience_counts.parquet")
-    print("- data/processed/years_experience_counts.parquet")
+    print("Saved processed datasets")
+
+
+    write_single_csv(skill_counts_df, SKILL_COUNTS_EXPORT_PATH)
+    write_single_csv(location_counts_df, LOCATION_COUNTS_EXPORT_PATH)
+    write_single_csv(workplace_type_counts_df, WORKPLACE_TYPE_COUNTS_EXPORT_PATH)
+    write_single_csv(employer_counts_df, EMPLOYER_COUNTS_EXPORT_PATH)
+    write_single_csv(experience_counts_df, EXPERIENCE_COUNTS_EXPORT_PATH)
+    write_single_csv(years_experience_counts_df, YEARS_EXPERIENCE_EXPORT_PATH)
 
 if __name__ == "__main__":
     main()
