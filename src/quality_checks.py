@@ -72,6 +72,16 @@ def main():
         "experience_required",
     ).show(30, truncate=False)
 
+    print("Sample jobs with high years of experience requirement:")
+    jobs_df.filter(
+        col("years_experience") >= 10
+    ).select(
+        "job_id",
+        "job_title",
+        "employer",
+        "years_experience"
+    ).show(30, truncate=False)
+
 
 if __name__ == "__main__":
     main()

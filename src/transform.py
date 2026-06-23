@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, udf, explode, desc
-from pyspark.sql.types import ArrayType, StringType
+from pyspark.sql.types import ArrayType, StringType, IntegerType
 import re
 
 RAW_DATA_PATH = "data/raw/raw_jobs.csv"
@@ -11,7 +11,7 @@ LOCATION_COUNTS_OUTPUT_PATH = "data/processed/location_counts.parquet"
 WORKPLACE_TYPE_COUNTS_OUTPUT_PATH = "data/processed/workplace_type_counts.parquet"
 EMPLOYER_COUNTS_OUTPUT_PATH = "data/processed/employer_counts.parquet"
 EXPERIENCE_COUNTS_OUTPUT_PATH = "data/processed/experience_counts.parquet"
-
+YEARS_EXPERIENCE_OUTPUT_PATH = "data/processed/years_experience_counts.parquet"
 
 # Decrease duplicate-found words with patterns instead of single words in text search
 SKILL_PATTERNS = { 
@@ -129,6 +129,36 @@ def classify_workplace_type(description):
 
     return "not_specified"
 
+def extract_years_experience(description):
+    if description is None:
+        return None
+
+    description = description.lower()
+
+    patterns = [
+        r"minst\s+(\d+)\s+års erfarenhet",
+        r"minst\s+(\d+)\s+år",
+        r"(\d+)\s*\+\s*(?:års erfarenhet|years)",
+        r"(\d+)\s+(?:års erfarenhet|år erfarenhet)",
+        r"(\d+)\s+års\s+relevant\s+erfarenhet",
+        r"(\d+)\s+års\s+arbetslivserfarenhet",
+        r"(\d+)\s+år\s+inom",
+        r"at least\s+(\d+)\s+years",
+        r"minimum\s+(\d+)\s+years",
+        r"(\d+)\s+years(?: of)? experience",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, description)
+        if match:
+            years = int(match.group(1))
+
+            if years > 20:
+                return None
+
+            return years
+
+    return None
 
 def main():
 
@@ -137,11 +167,13 @@ def main():
 
     skill_udf = udf(extract_skills, ArrayType(StringType()))
     workplace_type_udf = udf(classify_workplace_type, StringType())
+    years_experience_udf = udf(extract_years_experience, IntegerType())
 
     processed_df = (
         df
         .withColumn("skills", skill_udf(col("description")))
         .withColumn("workplace_type", workplace_type_udf(col("description")))
+        .withColumn("years_experience", years_experience_udf(col("description")))
     )
 
     jobs_df = processed_df.select(
@@ -154,7 +186,8 @@ def main():
         "search_term",
         col("experience").alias("experience_required"),
         "skills",
-        "workplace_type"
+        "workplace_type",
+        "years_experience"
     )
 
     job_skills_df = jobs_df.select(
@@ -197,6 +230,13 @@ def main():
         .orderBy(desc("count"))
     )
 
+    years_experience_counts_df = (
+        jobs_df
+        .groupBy("years_experience")
+        .count()
+        .orderBy("years_experience")
+    )
+
     print("Top job locations:")
     location_counts_df.show(20, truncate=False)
 
@@ -215,6 +255,9 @@ def main():
     print("Experience requirement counts:")
     experience_counts_df.show(truncate=False)
 
+    print("Years of experience required:")
+    years_experience_counts_df.show(truncate=False)
+
     jobs_df.write.mode("overwrite").parquet(JOBS_OUTPUT_PATH)
     skill_counts_df.write.mode("overwrite").parquet(SKILL_COUNTS_OUTPUT_PATH)
     job_skills_df.write.mode("overwrite").parquet(JOB_SKILLS_OUTPUT_PATH)
@@ -222,6 +265,7 @@ def main():
     workplace_type_counts_df.write.mode("overwrite").parquet(WORKPLACE_TYPE_COUNTS_OUTPUT_PATH)
     employer_counts_df.write.mode("overwrite").parquet(EMPLOYER_COUNTS_OUTPUT_PATH)
     experience_counts_df.write.mode("overwrite").parquet(EXPERIENCE_COUNTS_OUTPUT_PATH)
+    years_experience_counts_df.write.mode("overwrite").parquet(YEARS_EXPERIENCE_OUTPUT_PATH)
 
     print("Saved processed datasets:")
     print("- data/processed/jobs.parquet")
@@ -231,6 +275,7 @@ def main():
     print("- data/processed/workplace_type_counts.parquet")
     print("- data/processed/employer_counts.parquet")
     print("- data/processed/experience_counts.parquet")
+    print("- data/processed/years_experience_counts.parquet")
 
 if __name__ == "__main__":
     main()
