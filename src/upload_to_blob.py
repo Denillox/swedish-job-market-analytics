@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 
 RAW_FILE = "data/raw/raw_jobs.csv"
+EXPORTS_DIRECTORY = "data/exports"
 
 PROCESSED_DIRECTORIES = [
     "data/processed/jobs.parquet",
@@ -20,6 +21,11 @@ PROCESSED_DIRECTORIES = [
 
 
 def upload_file(container_client, local_path, blob_name):
+    local_path = Path(local_path)
+
+    if not local_path.exists():
+        raise FileNotFoundError(f"File not found: {local_path}")
+
     with open(local_path, "rb") as data:
         container_client.upload_blob(
             name=blob_name,
@@ -29,6 +35,25 @@ def upload_file(container_client, local_path, blob_name):
 
     print(f"Uploaded {local_path} -> {blob_name}")
 
+def upload_csv_files_from_directory(container_client, local_dir, blob_prefix):
+    local_dir_path = Path(local_dir)
+
+    if not local_dir_path.exists():
+        raise FileNotFoundError(f"Exports directory not found: {local_dir}")
+
+    csv_files = list(local_dir_path.glob("*.csv"))
+
+    if not csv_files:
+        raise FileNotFoundError(f"No CSV files found in: {local_dir}")
+
+    for csv_file in csv_files:
+        blob_name = f"{blob_prefix}/{csv_file.name}"
+
+        upload_file(
+            container_client=container_client,
+            local_path=csv_file,
+            blob_name=blob_name
+        )
 
 def upload_directory(container_client, local_dir, blob_prefix):
     local_dir_path = Path(local_dir)
@@ -75,6 +100,12 @@ def main():
             local_dir=directory,
             blob_prefix=f"processed/{dataset_name}"
         )
+    
+    upload_csv_files_from_directory(
+        container_client=container_client,
+        local_dir=EXPORTS_DIRECTORY,
+        blob_prefix="exports"
+    )
 
     print("Upload complete.")
 
