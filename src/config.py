@@ -14,6 +14,7 @@ WORKPLACE_TYPE_COUNTS_EXPORT_PATH = "data/exports/workplace_type_counts.csv"
 EMPLOYER_COUNTS_EXPORT_PATH = "data/exports/employer_counts.csv"
 EXPERIENCE_COUNTS_EXPORT_PATH = "data/exports/experience_counts.csv"
 YEARS_EXPERIENCE_EXPORT_PATH = "data/exports/years_experience_counts.csv"
+PIPELINE_SUMMARY_EXPORT_PATH = "data/exports/pipeline_summary.csv"
 
 # Decrease duplicate-found words with patterns instead of single words in text search
 SKILL_PATTERNS = { 

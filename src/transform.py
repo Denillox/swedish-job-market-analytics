@@ -22,6 +22,7 @@ from config import (
     EXPERIENCE_COUNTS_EXPORT_PATH,
     YEARS_EXPERIENCE_EXPORT_PATH,
     SKILL_PATTERNS,
+    PIPELINE_SUMMARY_EXPORT_PATH,
 )
 
 def create_spark_session():
@@ -225,14 +226,42 @@ def main():
         .orderBy("years_experience")
     )
 
+    total_jobs = jobs_df.count()
+    total_job_skill_rows = job_skills_df.count()
+    total_unique_skills = skill_counts_df.count()
+    total_locations = location_counts_df.count()
+    total_employers = employer_counts_df.count()
+
+    pipeline_summary_df = spark.createDataFrame(
+    [
+        (
+            total_jobs,
+            total_job_skill_rows,
+            total_unique_skills,
+            total_locations,
+            total_employers,
+        )
+    ],
+    [
+        "total_jobs",
+        "total_job_skill_rows",
+        "total_unique_skills",
+        "total_locations",
+        "total_employers",
+    ]
+    )
+
     print("Top job locations:")
     location_counts_df.show(20, truncate=False)
 
     print("Top requested skills:")
     skill_counts_df.show(truncate=False)
 
-    print(f"Total jobs: {jobs_df.count()}")
-    print(f"Total job-skill rows: {job_skills_df.count()}")
+    print(f"Total jobs: {total_jobs}")
+    print(f"Total job-skill rows: {total_job_skill_rows}")
+    print(f"Total unique skills: {total_unique_skills}")
+    print(f"Total locations: {total_locations}")
+    print(f"Total employers: {total_employers}")
 
     print("Workplace type counts:")
     workplace_type_counts_df.show(truncate=False)
@@ -264,6 +293,7 @@ def main():
     write_single_csv(employer_counts_df, EMPLOYER_COUNTS_EXPORT_PATH)
     write_single_csv(experience_counts_df, EXPERIENCE_COUNTS_EXPORT_PATH)
     write_single_csv(years_experience_counts_df, YEARS_EXPERIENCE_EXPORT_PATH)
+    write_single_csv(pipeline_summary_df, PIPELINE_SUMMARY_EXPORT_PATH)
 
 if __name__ == "__main__":
     main()
