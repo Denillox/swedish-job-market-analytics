@@ -23,6 +23,8 @@ from config import (
     YEARS_EXPERIENCE_EXPORT_PATH,
     SKILL_PATTERNS,
     PIPELINE_SUMMARY_EXPORT_PATH,
+    JOBS_EXPORT_PATH,
+    JOB_SKILLS_EXPORT_PATH,
 )
 
 def create_spark_session():
@@ -275,6 +277,19 @@ def main():
     print("Years of experience required:")
     years_experience_counts_df.show(truncate=False)
 
+    jobs_export_df = jobs_df.select(
+        "job_id",
+        "job_title",
+        "employer",
+        "municipality",
+        "region",
+        "publication_date",
+        "search_term",
+        "experience_required",
+        "workplace_type",
+        "years_experience"
+    )
+
     jobs_df.write.mode("overwrite").parquet(JOBS_OUTPUT_PATH)
     skill_counts_df.write.mode("overwrite").parquet(SKILL_COUNTS_OUTPUT_PATH)
     job_skills_df.write.mode("overwrite").parquet(JOB_SKILLS_OUTPUT_PATH)
@@ -286,6 +301,9 @@ def main():
 
     print("Saved processed datasets")
 
+
+    write_single_csv(jobs_export_df, JOBS_EXPORT_PATH)
+    write_single_csv(job_skills_df, JOB_SKILLS_EXPORT_PATH)
 
     write_single_csv(skill_counts_df, SKILL_COUNTS_EXPORT_PATH)
     write_single_csv(location_counts_df, LOCATION_COUNTS_EXPORT_PATH)
