@@ -1,146 +1,305 @@
 # Swedish Job Market Analytics
 
-A data engineering portfolio project analyzing Swedish Data/AI job postings from Arbetsförmedlingen's open JobTech API.
+A data engineering and analytics portfolio project analyzing Swedish Data/AI job postings from Arbetsförmedlingen's open JobTech API.
 
-The project focuses on collecting job listings, processing them with PySpark, creating analytics-ready datasets, and eventually visualizing Swedish Data/AI job market trends in Power BI.
+The project collects job listings, processes them with PySpark, creates analytics-ready datasets, uploads outputs to Azure Blob Storage, and visualizes the results in Power BI.
 
 ## Project Goal
 
-The goal is to build an end-to-end data pipeline that answers questions such as:
+The goal of this project is to build an end-to-end data pipeline for analyzing the Swedish Data/AI job market.
 
-* Which skills are most requested in Swedish Data/AI job postings?
-* Which cities and regions have the most Data/AI jobs?
-* Which employers are hiring the most?
-* How often do job postings mention remote or hybrid work?
-* Which tools and cloud platforms appear most often in job descriptions?
-* How often do job postings explicitly mention years of experience?
+The analysis focuses on questions such as:
+
+* Which skills are most commonly mentioned in Data/AI job postings?
+* Where in Sweden are Data/AI jobs concentrated?
+* Which employers appear most often in the dataset?
+* How often are remote or hybrid work options mentioned?
+* What explicit years-of-experience requirements are mentioned in job descriptions?
 
 ## Current Status
 
-Implemented:
+The project currently includes:
 
-* Extract job postings from the JobTech API
-* Save raw job data as CSV
-* Run the pipeline with Docker and Docker Compose
-* Transform raw data with PySpark
-* Extract requested skills from job descriptions using keyword/regex matching
-* Classify job postings by keyword-based workplace type detection
-* Extract explicit years of experience from job descriptions
-* Generate analytics-ready Parquet datasets
-* Run data quality checks on processed outputs
-* Upload raw and processed datasets to Azure Blob Storage
+* Data extraction from the JobTech API
+* Raw CSV storage
+* PySpark-based transformation pipeline
+* Skill extraction using regex and keyword rules
+* Workplace type classification
+* Explicit years-of-experience extraction
+* Data quality checks
+* Processed Parquet datasets
+* Clean CSV exports for dashboard consumption
+* Azure Blob Storage upload stage
+* One-command Docker Compose pipeline
+* Power BI report with three dashboard pages
 
 ## Tech Stack
 
 * Python
-* Pandas
 * PySpark
+* Pandas
 * Docker
 * Docker Compose
-* Parquet
 * Azure Blob Storage
 * Power BI
+* Git / GitHub
 
 ## Project Structure
 
 ```text
 swedish-job-market-analytics/
 ├── src/
-│   ├── extract.py          # Fetches job postings from JobTech API
-│   ├── transform.py        # Transforms raw jobs into analytics-ready datasets
-│   ├── quality_checks.py   # Runs data quality checks on processed outputs
-│   └── config.py           # Paths and extraction patterns
-├── data/                   # Generated raw and processed data, not committed
+│   ├── extract.py
+│   ├── transform.py
+│   ├── quality_checks.py
+│   ├── upload_to_blob.py
+│   └── config.py
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   └── exports/
+├── docs/
+│   ├── ReportPage.png
+│   ├── ReportPage2.png
+│   └── ReportPage3.png
+├── reports/
+│   └── swedish_job_market_dashboard.pbix
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
+├── .env.example
+├── .gitignore
 └── README.md
 ```
 
-## Pipeline
+The `data/` directory is generated locally and is not intended to be committed to Git.
+
+## Pipeline Overview
 
 ```text
 JobTech API
     ↓
 Raw CSV
     ↓
-PySpark transform
+PySpark Transform
     ↓
-Processed Parquet datasets
+Processed Parquet Datasets
     ↓
-Power BI dashboard planned
+CSV Dashboard Exports
+    ↓
+Azure Blob Storage
+    ↓
+Power BI Report
 ```
 
-## Processed Datasets
+The full ETL-pipeline can be run with:
 
-The transformation step currently creates:
+```bash
+docker compose run --rm pipeline
+```
 
-| Dataset                           | Description                                            |
-| --------------------------------- | ------------------------------------------------------ |
-| `jobs.parquet`                    | One row per job posting                                |
-| `job_skills.parquet`              | One row per job-skill pair                             |
-| `skill_counts.parquet`            | Aggregated count of requested skills                   |
-| `location_counts.parquet`         | Job counts by region and municipality                  |
-| `workplace_type_counts.parquet`   | Keyword-based remote, hybrid, and not specified counts |
-| `employer_counts.parquet`         | Job counts by employer                                 |
-| `experience_counts.parquet`       | Counts based on the API-level experience required flag |
-| `years_experience_counts.parquet` | Counts of explicitly mentioned years of experience     |
+This runs:
 
+```text
+extract → transform → quality checks → upload
+```
 
-## Dashboard Exports
-
-In addition to Parquet outputs, the transform step also creates CSV exports for easier Power BI consumption:
-
-- `data/exports/skill_counts.csv`
-- `data/exports/location_counts.csv`
-- `data/exports/workplace_type_counts.csv`
-- `data/exports/employer_counts.csv`
-- `data/exports/experience_counts.csv`
-- `data/exports/years_experience_counts.csv`
-
+The upload step overwrites existing Azure blobs with the latest generated outputs.
 
 ## How to Run
 
-Run the extraction step:
+### 1. Clone the repository
+
+```bash
+git clone <https://github.com/Denillox/swedish-job-market-analytics/tree/main>
+cd swedish-job-market-analytics
+```
+
+### 2. Create a `.env` file
+
+Create a local `.env` file based on `.env.example`:
+
+```env
+AZURE_STORAGE_CONNECTION_STRING=your_connection_string_here
+AZURE_CONTAINER_NAME=job-market-data
+```
+
+### 3. Build and run the full pipeline
+
+```bash
+docker compose run --rm pipeline
+```
+
+### 4. Run individual pipeline stages
 
 ```bash
 docker compose run --rm extract
-```
-
-Run the transformation step:
-
-```bash
 docker compose run --rm transform
+docker compose run --rm quality
+docker compose run --rm upload
 ```
 
-Run data quality checks:
+## Data Outputs
+
+### Raw Data
+
+| Output                  | Description                                     |
+| ----------------------- | ----------------------------------------------- |
+| `data/raw/raw_jobs.csv` | Raw job postings collected from the JobTech API |
+
+### Processed Parquet Datasets
+
+| Dataset                           | Description                                                  |
+| --------------------------------- | ------------------------------------------------------------ |
+| `jobs.parquet`                    | One row per job posting                                      |
+| `job_skills.parquet`              | One row per job-skill match                                  |
+| `skill_counts.parquet`            | Aggregated count by detected skill                           |
+| `location_counts.parquet`         | Aggregated count by region and municipality                  |
+| `workplace_type_counts.parquet`   | Aggregated count by workplace type                           |
+| `employer_counts.parquet`         | Aggregated count by employer                                 |
+| `experience_counts.parquet`       | Aggregated count by API experience flag                      |
+| `years_experience_counts.parquet` | Aggregated count by explicit years-of-experience requirement |
+
+### CSV Dashboard Exports
+
+The transform step also creates clean CSV files for Power BI:
+
+| Export                        | Description                          |
+| ----------------------------- | ------------------------------------ |
+| `jobs.csv`                    | Job-level dashboard dataset          |
+| `job_skills.csv`              | Job-skill relationship dataset       |
+| `skill_counts.csv`            | Skill count summary                  |
+| `location_counts.csv`         | Location count summary               |
+| `workplace_type_counts.csv`   | Workplace type summary               |
+| `employer_counts.csv`         | Employer count summary               |
+| `experience_counts.csv`       | API experience flag summary          |
+| `years_experience_counts.csv` | Explicit years-of-experience summary |
+| `pipeline_summary.csv`        | High-level pipeline metrics          |
+
+## Azure Blob Storage Layout
+
+The upload stage writes the latest outputs to Azure Blob Storage using this structure:
+
+```text
+raw/
+├── raw_jobs.csv
+
+processed/
+├── jobs.parquet/
+├── job_skills.parquet/
+├── skill_counts.parquet/
+├── location_counts.parquet/
+├── workplace_type_counts.parquet/
+├── employer_counts.parquet/
+├── experience_counts.parquet/
+└── years_experience_counts.parquet/
+
+exports/
+├── jobs.csv
+├── job_skills.csv
+├── skill_counts.csv
+├── location_counts.csv
+├── workplace_type_counts.csv
+├── employer_counts.csv
+├── experience_counts.csv
+├── years_experience_counts.csv
+└── pipeline_summary.csv
+```
+
+## Power BI Report
+
+The Power BI report contains three pages:
+
+1. **Overview**
+   High-level summary of total jobs, tracked skills, employers, job-skill matches, workplace type mentions, top requested skills, top job locations, and explicit years-of-experience requirements.
+
+2. **Skills Explorer**
+   Interactive page for filtering the dataset by region, municipality, search term, workplace type, and experience years to explore skill demand and employers by market segment.
+
+3. **Geography & Employers**
+   Geographic breakdown showing where Data/AI jobs are concentrated and which employers appear most often in selected market segments.
+
+## Dashboard Preview
+
+### Overview
+
+![Overview dashboard](docs/ReportPage.png)
+
+### Skills Explorer
+
+![Skills Explorer dashboard](docs/ReportPage2.png)
+
+### Geography & Employers
+
+![Geography and Employers dashboard](docs/ReportPage3.png)
+
+## Data Processing Notes
+
+Skill detection is based on predefined keyword and regex patterns. The current tracked skills include examples such as:
+
+* Python
+* SQL
+* PySpark
+* Spark
+* Databricks
+* Airflow
+* Azure
+* AWS
+* GCP
+* Snowflake
+* dbt
+* Power BI
+
+Workplace type classification is also keyword-based. For example, descriptions containing words such as `remote`, `distans`, or `hybrid` are classified accordingly.
+
+The `not_specified` workplace category means that no remote or hybrid keyword was detected. It does not necessarily mean the role is fully on-site.
+
+Explicit years-of-experience requirements are extracted from job descriptions using regex patterns. Blank values mean that no explicit year requirement was detected.
+
+## Data Quality Checks
+
+The project includes a quality check script that validates and previews processed datasets.
+
+Run it with:
 
 ```bash
 docker compose run --rm quality
 ```
 
-Run the upload step:
+The quality checks include:
 
-```bash
-docker compose run --rm upload
-```
+* Total job count
+* Missing location checks
+* Top skill counts
+* Top location counts
+* Workplace type distribution
+* Employer counts
+* Experience requirement counts
+* Explicit years-of-experience distribution
+* Sample checks for high experience requirements
 
-Generated raw and processed data is written to the local `data/` directory.
+## Key Limitations
 
-## Data Notes
+This project uses keyword and regex-based extraction. The results should be interpreted as detected mentions, not perfect classifications.
 
-The data is collected from Arbetsförmedlingen's open JobTech API.
+Important limitations:
 
-Skill extraction, workplace type classification, and years-of-experience extraction are currently keyword/regex-based. These outputs are useful for trend analysis, but should not be interpreted as perfect classifications.
+* Job descriptions may mention skills in different ways that are not yet captured.
+* Workplace type classification depends on keywords in the description.
+* `not_specified` does not mean on-site.
+* Blank years-of-experience values do not mean no experience is required.
+* The dataset depends on selected search terms and available JobTech API results.
+* Employer counts may be affected by consultancies, duplicate-like postings, and broad search terms.
 
-Generated data files are excluded from the repository and are not committed to Git.
+## Planned Improvements
 
-## Planned Features
+Possible future improvements:
 
-* Improve skill extraction and reduce false positives
-* Investigate missing location data
-* Improve remote, hybrid, and on-site classification
-* Upload processed data to Azure Storage
-* Build a Power BI dashboard
-* Add dashboard screenshots
-* Add a final architecture diagram
+* Add scheduled pipeline runs
+* Add historical snapshots by collection date
+* Improve skill extraction rules
+* Add more formal unit tests
+* Connect Power BI directly to Azure Blob Storage
+* Add more dashboard pages for job listings and trends
+* Add an architecture diagram
+* Add CI checks for code quality
